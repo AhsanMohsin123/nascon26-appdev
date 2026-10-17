@@ -168,44 +168,110 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   );
 
   Widget _scoreEntry(AuthProvider auth) {
-    final eventTypes = <String>[];
     final sport = _score!['sport_id'] ?? '';
-    if (sport == 'football') eventTypes.addAll(['goal']);
-    else if (sport == 'basketball') eventTypes.addAll(['free_throw','two_pointer','three_pointer']);
-    else if (sport == 'cricket') eventTypes.addAll(['dot_ball','single','two','four','six','wide','no_ball','wicket']);
-    else if (sport == 'esports') eventTypes.addAll(['round_win']);
+    final List<String> eventTypes;
+    if (sport == 'football') {
+      eventTypes = ['goal'];
+    } else if (sport == 'basketball') {
+      eventTypes = ['free_throw', 'two_pointer', 'three_pointer'];
+    } else if (sport == 'cricket') {
+      eventTypes = ['single', 'two', 'four', 'six', 'wicket', 'wide', 'no_ball', 'dot_ball'];
+    } else if (sport == 'esports') {
+      eventTypes = ['round_win'];
+    } else {
+      eventTypes = ['goal'];
+    }
 
     final home = _score!['home']['team_id'] as String;
     final away = _score!['away']['team_id'] as String;
-    String? selectedTeam = home;
-    String? selectedEvent = eventTypes.isNotEmpty ? eventTypes.first : null;
+    final status = _score!['status'] ?? 'upcoming';
 
-    return StatefulBuilder(builder: (ctx, set2) => Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Append Score Event', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          value: selectedTeam,
-          decoration: const InputDecoration(labelText: 'Team'),
-          items: [home, away].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-          onChanged: (v) => set2(() => selectedTeam = v),
-        ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Match control
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Chip(
+            avatar: Icon(
+              status == 'in_progress' ? Icons.play_circle : status == 'completed' ? Icons.check_circle : Icons.schedule,
+              color: AppColors.statusColor(status), size: 18,
+            ),
+            label: Text(status.replaceAll('_', ' ').toUpperCase(),
+                style: TextStyle(color: AppColors.statusColor(status), fontWeight: FontWeight.w700, fontSize: 12)),
+          ),
+        ]),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          value: selectedEvent,
-          decoration: const InputDecoration(labelText: 'Event Type'),
-          items: eventTypes.map((e) => DropdownMenuItem(value: e, child: Text(e.replaceAll('_', ' ')))).toList(),
-          onChanged: (v) => set2(() => selectedEvent = v),
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          onPressed: () => _appendScoreEvent(selectedTeam!, selectedEvent!, auth),
-          icon: const Icon(Icons.add_circle_outline),
-          label: const Text('Submit Event'),
-        ),
+        if (status == 'upcoming')
+          ElevatedButton.icon(
+            onPressed: () => _matchControl('match_start', auth),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Start Match'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+          ),
+        if (status == 'completed')
+          const Center(child: Text('Match completed. Scores are final.', style: TextStyle(color: Colors.grey))),
+
+        if (status == 'in_progress') ...[
+          const Text('Tap to add points', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16), textAlign: TextAlign.center),
+          const SizedBox(height: 14),
+          // Two team columns with score buttons
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: _teamScorePanel(home, '${_score!['home']['score']}', eventTypes, auth)),
+            Container(width: 1, height: 220, color: Colors.grey.shade300),
+            Expanded(child: _teamScorePanel(away, '${_score!['away']['score']}', eventTypes, auth)),
+          ]),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _matchControl('match_end', auth),
+              icon: const Icon(Icons.stop_circle, color: Colors.red),
+              label: const Text('End Match', style: TextStyle(color: Colors.red)),
+            ),
+          ),
+        ],
       ]),
-    ));
+    );
+  }
+
+  Widget _teamScorePanel(String team, String score, List<String> eventTypes, AuthProvider auth) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: Column(children: [
+      Text(team, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+      const SizedBox(height: 4),
+      Text(score, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+      const SizedBox(height: 10),
+      ...eventTypes.map((ev) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => _appendScoreEvent(team, ev, auth),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              backgroundColor: _eventColor('score').withOpacity(0.85),
+            ),
+            child: Text('+ ${ev.replaceAll('_', ' ')}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          ),
+        ),
+      )),
+    ]),
+  );
+
+  Future<void> _matchControl(String type, AuthProvider auth) async {
+    final eventId = 'evt-${DateTime.now().millisecondsSinceEpoch}';
+    final payload = {'event_id': eventId, 'match_id': widget.matchId, 'type': type, 'payload': {}};
+    try {
+      await ApiService.appendEvent(payload);
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(type == 'match_start' ? 'Match started!' : 'Match ended!'),
+          backgroundColor: AppTheme.success));
+      }
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.userMessage), backgroundColor: Colors.red));
+    }
   }
 
   Future<void> _appendScoreEvent(String teamId, String eventType, AuthProvider auth) async {
