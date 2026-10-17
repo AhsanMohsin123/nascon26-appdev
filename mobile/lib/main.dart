@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'services/auth_service.dart';
-import 'services/sync_service.dart';
+import 'providers/auth_provider.dart';
+import 'providers/sync_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => SyncService()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()..tryRestoreSession()),
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
       ],
       child: const NaSConApp(),
     ),
@@ -23,14 +27,16 @@ class NaSConApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NaSCon 26',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A237E)),
-        useMaterial3: true,
-      ),
-      home: Consumer<AuthService>(
-        builder: (ctx, auth, _) =>
-            auth.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+      title: "NaSCon '26",
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      home: Consumer<AuthProvider>(
+        builder: (ctx, auth, _) {
+          if (auth.loading) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          return auth.isLoggedIn ? const HomeScreen() : const LoginScreen();
+        },
       ),
     );
   }
