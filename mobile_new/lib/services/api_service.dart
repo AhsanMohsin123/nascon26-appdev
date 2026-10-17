@@ -4,8 +4,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
   static const _storage = FlutterSecureStorage();
-  // ADB reverse tunnel: phone localhost:8080 -> laptop 8080
-  static String _baseUrl = 'http://localhost:8080';
+  // ADB reverse tunnel: 127.0.0.1 on device -> host port 8080 via USB
+  static String _baseUrl = 'http://127.0.0.1:8080';
 
   static String get baseUrl => _baseUrl;
   static set baseUrl(String url) => _baseUrl = url.trim().isEmpty ? 'http://localhost:8080' : url.trim();
