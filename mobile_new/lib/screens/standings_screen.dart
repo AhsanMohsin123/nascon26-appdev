@@ -43,8 +43,11 @@ class _StandingsScreenState extends State<StandingsScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.filter_list),
             onSelected: (v) { setState(() => _leagueId = v); _load(); },
-            itemBuilder: (_) => ['league-alpha-1','league-alpha-2','league-beta-1']
-                .map((l) => PopupMenuItem(value: l, child: Text(l))).toList(),
+            itemBuilder: (_) => const {
+              'league-alpha-1': '⚽ Football League',
+              'basketball-league': '🏀 Basketball League',
+              'cricket-league': '🏏 Cricket League',
+            }.entries.map((e) => PopupMenuItem(value: e.key, child: Text(e.value))).toList(),
           ),
         ],
       ),

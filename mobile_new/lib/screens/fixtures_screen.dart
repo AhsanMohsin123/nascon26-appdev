@@ -24,17 +24,19 @@ class _FixturesScreenState extends State<FixturesScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final data = await ApiService.getStandings(_leagueId);
-      // Get match ids from fixtures — try loading some known matches
-      setState(() { _loading = false; });
+      final data = await ApiService.get('/audit/v1/matches/$_leagueId');
+      final list = (data['matches'] as List? ?? []).map((m) => {
+        'match_id': m['match_id'],
+        'sport_id': m['sport_id'],
+        'home_team_id': m['home']?['team_id'] ?? '',
+        'away_team_id': m['away']?['team_id'] ?? '',
+        'home_score': m['home']?['score'] ?? 0,
+        'away_score': m['away']?['score'] ?? 0,
+        'status': m['status'] ?? 'upcoming',
+      }).toList().cast<Map<String, dynamic>>();
+      setState(() { _matches = list; _loading = false; });
     } catch (e) {
-      // Try offline cache
-      final cached = await LocalDb.getStandings(_leagueId);
-      if (cached != null) {
-        setState(() { _loading = false; });
-      } else {
-        setState(() { _loading = false; _error = e is ApiException ? e.userMessage : e.toString(); });
-      }
+      setState(() { _loading = false; _error = e is ApiException ? e.userMessage : 'Could not load fixtures'; });
     }
   }
 
@@ -47,8 +49,11 @@ class _FixturesScreenState extends State<FixturesScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.filter_list),
             onSelected: (v) { setState(() => _leagueId = v); _load(); },
-            itemBuilder: (_) => ['league-alpha-1','league-alpha-2','league-beta-1']
-                .map((l) => PopupMenuItem(value: l, child: Text(l))).toList(),
+            itemBuilder: (_) => const {
+              'league-alpha-1': '⚽ Football League',
+              'basketball-league': '🏀 Basketball League',
+              'cricket-league': '🏏 Cricket League',
+            }.entries.map((e) => PopupMenuItem(value: e.key, child: Text(e.value))).toList(),
           ),
         ],
       ),
