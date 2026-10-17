@@ -132,35 +132,32 @@ def _body_hash(body: dict) -> str:
 
 
 def _generate_pdf(order_id: str, total_major: float, payload: dict) -> bytes:
-    lines = [
-        f"Order: {order_id}",
-        f"Customer: {payload.get('customer_id', '')}",
-        f"Total: PKR {total_major:.2f}",
-    ]
-    for item in payload.get("items", []):
-        lines.append(f"  {item['variant_id']} x{item['quantity']} @ PKR {item['unit_price_minor']/100:.2f}")
-    lines.append(f"Paid at: {payload.get('paid_at', '')}")
-    body_text = "\n".join(lines)
-
-    # Minimal valid PDF containing the order_id and PKR total
-    pdf = f"""%PDF-1.4
-1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
-2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
-3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj
-4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
-5 0 obj
-<</Length {len(body_text) + 50}>>
-stream
-BT /F1 12 Tf 50 750 Td ({order_id}) Tj 0 -20 Td (PKR {total_major:.2f}) Tj ET
-endstream
-endobj
-xref
-0 6
-trailer<</Size 6/Root 1 0 R>>
-startxref
-0
-%%EOF"""
-    return pdf.encode("latin-1")
+    try:
+        from fpdf import FPDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, "NaSCon '26 — Order Receipt", ln=True, align="C")
+        pdf.ln(5)
+        pdf.set_font("Helvetica", size=12)
+        pdf.cell(0, 8, f"Order ID: {order_id}", ln=True)
+        pdf.cell(0, 8, f"Customer: {payload.get('customer_id', '')}", ln=True)
+        pdf.cell(0, 8, f"Paid at: {payload.get('paid_at', '')}", ln=True)
+        pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "Items:", ln=True)
+        pdf.set_font("Helvetica", size=11)
+        for item in payload.get("items", []):
+            price = item["unit_price_minor"] / 100
+            pdf.cell(0, 7, f"  {item['variant_id']}  x{item['quantity']}  @ PKR {price:.2f}", ln=True)
+        pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.cell(0, 10, f"Total: PKR {total_major:.2f}", ln=True)
+        return pdf.output()
+    except Exception:
+        # Fallback minimal PDF
+        content = f"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj 4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj 5 0 obj\n<</Length 60>>\nstream\nBT /F1 12 Tf 50 750 Td ({order_id}) Tj 0 -20 Td (PKR {total_major:.2f}) Tj ET\nendstream\nendobj\nxref\n0 6\ntrailer<</Size 6/Root 1 0 R>>\nstartxref\n0\n%%EOF"
+        return content.encode("latin-1")
 
 
 async def get_inventory(db: AsyncSession, variant_id: str) -> dict:
