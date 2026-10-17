@@ -127,18 +127,19 @@ async def reset_and_seed(db: AsyncSession, seed: int, stock: dict):
 
     # Seed demo users (passwords are bcrypt hashes of "Nascon@26")
     from app.auth.jwt import hash_password
+    import uuid
     pw = hash_password("Nascon@26")
     users = [
-        ("admin@nascon.test", "super_admin", "tenant-alpha", None, None),
-        ("organizer@nascon.test", "league_organizer", "tenant-alpha", "league-alpha-1", None),
-        ("manager@nascon.test", "club_manager", "tenant-alpha", None, "club-alpha-1"),
-        ("player@nascon.test", "player", "tenant-alpha", None, "club-alpha-1"),
-        ("viewer@nascon.test", "viewer", "tenant-alpha", None, None),
+        (str(uuid.uuid4()), "admin@nascon.test", "super_admin", "tenant-alpha", None, None),
+        (str(uuid.uuid4()), "organizer@nascon.test", "league_organizer", "tenant-alpha", "league-alpha-1", None),
+        (str(uuid.uuid4()), "manager@nascon.test", "club_manager", "tenant-alpha", None, "club-alpha-1"),
+        (str(uuid.uuid4()), "player@nascon.test", "player", "tenant-alpha", None, "club-alpha-1"),
+        (str(uuid.uuid4()), "viewer@nascon.test", "viewer", "tenant-alpha", None, None),
     ]
-    for email, role, tenant_id, league_id, club_id in users:
+    for uid, email, role, tenant_id, league_id, club_id in users:
         await db.execute(text(
-            "INSERT INTO users (email, password_hash, role, tenant_id, league_id, club_id) "
-            "VALUES (:email, :pw, :role, :tenant_id, :league_id, :club_id) ON CONFLICT (email) DO UPDATE SET password_hash=:pw"
-        ), {"email": email, "pw": pw, "role": role, "tenant_id": tenant_id, "league_id": league_id, "club_id": club_id})
+            "INSERT INTO users (id, email, password_hash, role, tenant_id, league_id, club_id) "
+            "VALUES (:id, :email, :pw, :role, :tenant_id, :league_id, :club_id) ON CONFLICT (email) DO UPDATE SET password_hash=:pw"
+        ), {"id": uid, "email": email, "pw": pw, "role": role, "tenant_id": tenant_id, "league_id": league_id, "club_id": club_id})
 
     await db.commit()
