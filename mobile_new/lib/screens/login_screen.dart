@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/api_service.dart';
 import '../app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,9 +12,15 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
-  final _server = TextEditingController(text: 'http://10.0.2.2:8080');
   bool _obscure = true;
-  bool _showServer = false;
+
+  static const _roles = [
+    _R('Admin',     'admin@nascon.test',     Icons.admin_panel_settings, Colors.purple),
+    _R('Organizer', 'organizer@nascon.test', Icons.event,                Colors.blue),
+    _R('Manager',   'manager@nascon.test',   Icons.manage_accounts,      Colors.teal),
+    _R('Player',    'player@nascon.test',     Icons.sports,               Colors.green),
+    _R('Viewer',    'viewer@nascon.test',     Icons.visibility,           Colors.grey),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -24,134 +29,131 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppTheme.primary,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              _logo(),
-              const SizedBox(height: 40),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20, offset: const Offset(0, 8))],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Welcome Back', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.primaryDark)),
-                    const SizedBox(height: 4),
-                    const Text('Sign in to continue', style: TextStyle(color: Colors.grey, fontSize: 14)),
-                    const SizedBox(height: 28),
-                    _field('Email', _email, TextInputType.emailAddress, Icons.email_outlined),
-                    const SizedBox(height: 16),
-                    _passField(),
-                    if (auth.error != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.shade200)),
-                        child: Row(children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(auth.error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                        ]),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: auth.loading ? null : _login,
-                        child: auth.loading
-                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: () => setState(() => _showServer = !_showServer),
-                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.settings, size: 14, color: Colors.grey.shade500),
-                        const SizedBox(width: 4),
-                        Text('Server Settings', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-                      ]),
-                    ),
-                    if (_showServer) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _server,
-                        decoration: const InputDecoration(labelText: 'Server URL', prefixIcon: Icon(Icons.dns_outlined)),
-                        onChanged: (v) => ApiService.baseUrl = v.trim(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              _demoAccounts(),
-            ],
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(children: [
+            const SizedBox(height: 32),
+            _logo(),
+            const SizedBox(height: 20),
+            _form(auth),
+            const SizedBox(height: 14),
+            _quickButtons(auth),
+            const SizedBox(height: 20),
+          ]),
         ),
       ),
     );
   }
 
   Widget _logo() => Column(children: [
-    Container(
-      width: 80, height: 80,
-      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 12)]),
-      child: const Icon(Icons.sports, color: AppTheme.primary, size: 44),
-    ),
-    const SizedBox(height: 16),
-    const Text("NaSCon '26", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 1)),
-    const Text('Sports League Platform', style: TextStyle(color: Colors.white70, fontSize: 14)),
+    Container(width: 68, height: 68,
+      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+      child: const Icon(Icons.sports, color: AppTheme.primary, size: 38)),
+    const SizedBox(height: 10),
+    const Text("NaSCon '26", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+    const Text('Sports Platform', style: TextStyle(color: Colors.white70, fontSize: 12)),
   ]);
 
-  Widget _field(String label, TextEditingController ctrl, TextInputType type, IconData icon) =>
-    TextField(controller: ctrl, keyboardType: type, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)));
-
-  Widget _passField() => TextField(
-    controller: _pass,
-    obscureText: _obscure,
-    decoration: InputDecoration(
-      labelText: 'Password',
-      prefixIcon: const Icon(Icons.lock_outline),
-      suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure)),
+  Widget _form(AuthProvider auth) => Card(
+    elevation: 6,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Sign In', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.primaryDark)),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _email,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined), isDense: true),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _pass,
+          obscureText: _obscure,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            prefixIcon: const Icon(Icons.lock_outline),
+            isDense: true,
+            suffixIcon: IconButton(
+              icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, size: 20),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+        ),
+        if (auth.error != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 16),
+              const SizedBox(width: 6),
+              Expanded(child: Text(auth.error!, style: const TextStyle(color: Colors.red, fontSize: 12))),
+            ]),
+          ),
+        ],
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity, height: 46,
+          child: ElevatedButton(
+            onPressed: auth.loading ? null : _submit,
+            child: auth.loading
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Sign In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          ),
+        ),
+      ]),
     ),
   );
 
-  Widget _demoAccounts() => Container(
-    margin: const EdgeInsets.symmetric(horizontal: 24),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Demo Accounts', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-      const SizedBox(height: 10),
-      ...[
-        ('Admin', 'admin@nascon.test'),
-        ('Organizer', 'organizer@nascon.test'),
-        ('Manager', 'manager@nascon.test'),
-        ('Player', 'player@nascon.test'),
-        ('Viewer', 'viewer@nascon.test'),
-      ].map((e) => GestureDetector(
-        onTap: () { _email.text = e.$2; _pass.text = 'Nascon@26'; },
-        child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [
-          const Icon(Icons.person_outline, color: Colors.white70, size: 14),
-          const SizedBox(width: 6),
-          Text('${e.$1}: ', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          Text(e.$2, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-        ])),
-      )),
-      const SizedBox(height: 4),
-      const Text('Password for all: Nascon@26', style: TextStyle(color: Colors.white54, fontSize: 11)),
-    ]),
+  Widget _quickButtons(AuthProvider auth) => Column(children: [
+    const Text('— Tap to login instantly —', style: TextStyle(color: Colors.white70, fontSize: 11)),
+    const SizedBox(height: 10),
+    Wrap(
+      spacing: 8, runSpacing: 8, alignment: WrapAlignment.center,
+      children: _roles.map((r) => _roleBtn(r, auth)).toList(),
+    ),
+    const SizedBox(height: 6),
+    const Text('All use password: Nascon@26', style: TextStyle(color: Colors.white54, fontSize: 10)),
+  ]);
+
+  Widget _roleBtn(_R r, AuthProvider auth) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: auth.loading ? null : () => _loginAs(r.email),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white38),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(r.icon, color: Colors.white, size: 15),
+          const SizedBox(width: 5),
+          Text(r.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+        ]),
+      ),
+    ),
   );
 
-  Future<void> _login() async {
-    ApiService.baseUrl = _server.text.trim();
+  Future<void> _submit() async {
+    if (_email.text.trim().isEmpty) return;
     await context.read<AuthProvider>().login(_email.text.trim(), _pass.text);
   }
+
+  Future<void> _loginAs(String email) async {
+    _email.text = email;
+    _pass.text = 'Nascon@26';
+    setState(() {});
+    await context.read<AuthProvider>().login(email, 'Nascon@26');
+  }
+}
+
+class _R {
+  final String label, email;
+  final IconData icon;
+  final Color color;
+  const _R(this.label, this.email, this.icon, this.color);
 }
