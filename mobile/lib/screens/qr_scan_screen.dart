@@ -15,12 +15,15 @@ class _QrScanScreenState extends State<QrScanScreen> {
   String? _message;
 
   Future<void> _enableCamera() async {
-    try {
-      await _controller.start(); // triggers the OS permission dialog if not yet granted
-      if (mounted) setState(() => _cameraOn = true);
-    } catch (e) {
-      if (mounted) setState(() => _message = 'Camera unavailable: $e');
-    }
+    // Mount the preview first; starting before the widget exists leaves a black texture.
+    setState(() { _cameraOn = true; _message = null; });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await _controller.start(); // triggers the OS permission dialog if not yet granted
+      } catch (e) {
+        if (mounted) setState(() => _message = 'Camera unavailable: $e');
+      }
+    });
   }
 
   @override
