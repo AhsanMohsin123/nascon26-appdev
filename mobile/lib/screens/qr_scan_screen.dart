@@ -9,9 +9,19 @@ class QrScanScreen extends StatefulWidget {
 }
 
 class _QrScanScreenState extends State<QrScanScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+  final MobileScannerController _controller = MobileScannerController(autoStart: false);
   bool _busy = false;
+  bool _cameraOn = false;
   String? _message;
+
+  Future<void> _enableCamera() async {
+    try {
+      await _controller.start(); // triggers the OS permission dialog if not yet granted
+      if (mounted) setState(() => _cameraOn = true);
+    } catch (e) {
+      if (mounted) setState(() => _message = 'Camera unavailable: $e');
+    }
+  }
 
   @override
   void dispose() { _controller.dispose(); super.dispose(); }
@@ -48,9 +58,40 @@ class _QrScanScreenState extends State<QrScanScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    if (!_cameraOn) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.qr_code_scanner_rounded, size: 72, color: scheme.primary),
+            const SizedBox(height: 16),
+            const Text('Scan NaSCon QR codes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            const Text('We need your camera to read match, club and player QR codes. Nothing is recorded or uploaded.',
+                textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(onPressed: _enableCamera, icon: const Icon(Icons.camera_alt_rounded), label: const Text('Allow camera')),
+            if (_message != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_message!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red))),
+          ]),
+        ),
+      );
+    }
     return Stack(
       children: [
-        MobileScanner(controller: _controller, onDetect: _onDetect),
+        MobileScanner(
+          controller: _controller,
+          onDetect: _onDetect,
+          errorBuilder: (context, error, _) => Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.no_photography_rounded, size: 56),
+              const SizedBox(height: 8),
+              Text(error.errorCode == MobileScannerErrorCode.permissionDenied
+                  ? 'Camera permission denied. Enable it in Settings > Apps > nascon26_app.'
+                  : 'Camera error: ${error.errorCode.name}', textAlign: TextAlign.center),
+              TextButton(onPressed: () => _controller.start(), child: const Text('Try again')),
+            ]),
+          ),
+        ),
         Center(
           child: Container(
             width: 240, height: 240,
