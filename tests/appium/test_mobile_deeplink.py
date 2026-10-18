@@ -25,3 +25,4 @@ def test_mobile_deep_link_intents():
 
     assert match_intent.startswith("nascon://entity/")
     assert stream_intent.startswith("nascon://stream/")
+

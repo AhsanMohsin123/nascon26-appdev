@@ -108,3 +108,4 @@ def test_guest_cart_staging_and_score_sync(driver):
     WebDriverWait(driver, 5).until(
         lambda d: "2" in d.find_element(By.CSS_SELECTOR, '[data-testid="live-score-banner"]').text
     )
+
