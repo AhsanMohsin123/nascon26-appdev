@@ -12,6 +12,8 @@ import 'club_screen.dart';
 import 'sync_screen.dart';
 import 'dashboard_screen.dart';
 import 'qr_scan_screen.dart';
+import 'stream_studio_screen.dart';
+import 'costream_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -80,10 +82,14 @@ class _HomeScreenState extends State<HomeScreen> {
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
             itemBuilder: (_) => [
+              const PopupMenuItem(value: 'studio', child: Row(children: [Icon(Icons.videocam_rounded, size: 16), SizedBox(width: 8), Text('Stream Studio')])),
+              const PopupMenuItem(value: 'costream', child: Row(children: [Icon(Icons.grid_view_rounded, size: 16), SizedBox(width: 8), Text('Co-Stream (4-way)')])),
               const PopupMenuItem(value: 'feedback', child: Row(children: [Icon(Icons.feedback_outlined, size: 16), SizedBox(width: 8), Text('Send feedback')])),
               const PopupMenuItem(value: 'logout', child: Row(children: [Icon(Icons.logout, size: 16), SizedBox(width: 8), Text('Logout')])),
             ],
             onSelected: (v) {
+              if (v == 'studio') Navigator.push(context, MaterialPageRoute(builder: (_) => const StreamStudioScreen()));
+              if (v == 'costream') Navigator.push(context, MaterialPageRoute(builder: (_) => const CostreamScreen()));
               if (v == 'feedback') {
                 _showFeedback(context, _tabs[_currentIndex].label, auth.user?.role ?? 'viewer');
               }
