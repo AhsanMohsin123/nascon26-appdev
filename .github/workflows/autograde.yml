@@ -1,0 +1,102 @@
+name: NaSCon '26 Day 2 Autograder
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  audit-and-grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      DAY1_SALT: ${{ secrets.DAY1_SALT }}
+      DAY2_SALT: ${{ T34D26a1ca9c37ce }}
+      DAY1_BASE_SHA: '5b7b07fb6948dd860f9edeaf01a4ec4c474609f4'
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Phase I Commit Ancestry Check
+        run: |
+          echo "Verifying DAY1_BASE_SHA ($DAY1_BASE_SHA) is an ancestor of HEAD..."
+          git merge-base --is-ancestor $DAY1_BASE_SHA HEAD
+          echo "Ancestry verification: PASSED"
+
+      - name: Verify Required Day 2 Artifacts
+        run: |
+          echo "Checking required repository files..."
+          test -f docker-compose.yml || (echo "Missing docker-compose.yml" && exit 1)
+          test -f tests/k6_load.js || (echo "Missing tests/k6_load.js" && exit 1)
+          test -f COVERAGE_DAY2.json || (echo "Missing COVERAGE_DAY2.json" && exit 1)
+          test -f TRACEABILITY.md || (echo "Missing TRACEABILITY.md" && exit 1)
+          test -d tests/selenium || (echo "Missing tests/selenium" && exit 1)
+          test -d tests/appium || (echo "Missing tests/appium" && exit 1)
+          test -d tests/reports || (echo "Missing tests/reports" && exit 1)
+          echo "All required Day 2 root paths present."
+
+      - name: Bring Up Full Stack with Docker Compose
+        run: |
+          docker compose up -d --build
+
+      - name: Wait for Backend API Health Readiness
+        run: |
+          echo "Waiting up to 120 seconds for GET /health on port 8080..."
+          timeout=120
+          elapsed=0
+          until curl -s -f http://localhost:8080/health | grep -q "ok"; do
+            sleep 3
+            elapsed=$((elapsed + 3))
+            if [ $elapsed -ge $timeout ]; then
+              echo "Timeout waiting for backend to become healthy."
+              docker compose logs api
+              exit 1
+            fi
+          done
+          echo "Backend is healthy! ($elapsed seconds elapsed)"
+
+      - name: Verify Selenium Grid 4 Status (3 Ready Nodes)
+        run: |
+          echo "Waiting for Selenium Grid 4 on port 4444..."
+          timeout=60
+          elapsed=0
+          until curl -s http://localhost:4444/status | grep -q '"ready":true'; do
+            sleep 3
+            elapsed=$((elapsed + 3))
+            if [ $elapsed -ge $timeout ]; then
+              echo "Timeout waiting for Selenium Grid."
+              docker compose logs selenium-hub
+              exit 1
+            fi
+          done
+          echo "Selenium Grid 4 is ready with active nodes."
+
+      - name: Install Python Test Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov httpx requests selenium
+
+      - name: Execute Backend Contract Tests
+        run: |
+          pytest -v backend/tests
+
+      - name: Install and Run k6 Load Test
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          mkdir -p tests/reports
+          k6 run --summary-export=tests/reports/k6-summary.json tests/k6_load.js || true
+
+      - name: Teardown Compose Stack
+        if: always()
+        run: |
+          docker compose down -v
+
