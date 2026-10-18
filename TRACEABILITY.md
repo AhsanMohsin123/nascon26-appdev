@@ -23,17 +23,18 @@ Maps every FR/NFR to source files and automated tests.
 
 | ID | Module | Requirement | Source Files | Tests | Status |
 |----|--------|-------------|--------------|-------|--------|
-| FR-3.1 | `streaming` | Public Athlete Identity & Social Graph | `backend/app/domain/streaming.py` | `backend/tests/test_streaming.py` | PARTIAL |
-| FR-3.2 | `streaming` | Low-Latency Solo Streaming & Dynamic Overlays | `backend/app/api/streaming.py`, `backend/app/domain/streaming.py` | `backend/tests/test_streaming.py` | PASS |
-| FR-3.3 | `costream` | Synchronized 4-Way Co-Streaming & Host Handoff | `backend/app/api/costream.py`, `backend/app/domain/costream.py` | `backend/tests/test_costream.py` | PARTIAL |
-| FR-4.1 | `qr_guest` | Dynamic Cryptographic QR Deep-Linking & Exports | `backend/app/api/qr.py`, `backend/app/domain/qr.py` | `backend/tests/test_qr.py` | PASS |
-| FR-4.2 | `qr_guest` | Zero-Account Guest Experience | `backend/app/api/guest.py`, Guest Web Player `/web/*` | `tests/selenium/test_guest_grid.py` | PARTIAL |
-| FR-4.3 | `qr_guest` | Server-Enforced Read-Only Boundary (HTTP 403) | `backend/app/auth/guest_guard.py` | `backend/tests/test_guest.py` | PARTIAL |
-| FR-4.4 | `qr_guest` | Progressive Registration & Atomic Cart Merge | `backend/app/domain/cart_merge.py` | `backend/tests/test_cart_merge.py` | PARTIAL |
-| FR-5.2 | `moderation_dlq`| Notification Bus & Dead-Letter Queue (DLQ) | `backend/app/domain/notifications.py` | `backend/tests/test_dlq.py` | PARTIAL |
-| FR-5.3 | `moderation_dlq`| Automated Chat Moderation (Leetspeak/Flood) | `backend/app/domain/moderation.py` | `backend/tests/test_moderation.py` | PARTIAL |
-| NFR-1 | `observability` | Real-Time Score Latency (<500ms p95) | `backend/app/api/events.py` | `backend/tests/test_events_ws.py` | PASS |
-| NFR-2 | `observability` | High-Concurrency Scale (550 VUs) | `docker-compose.yml`, FastAPI pool | `tests/k6_load.js` | PASS |
-| NFR-6 | `observability` | System Observability (Prometheus /metrics) | `backend/app/api/metrics.py` | `backend/tests/test_metrics.py` | PARTIAL |
-| NFR-8 | `qr_guest` | Guest Web Accessibility (WCAG 2.1 AA) | Guest Web Player DOM contract | `tests/selenium/test_guest_grid.py` | PARTIAL |
-| NFR-9 | `observability` | Privacy & Data Minimization (Right to Erasure) | `backend/app/api/privacy.py` | `backend/tests/test_privacy.py` | PARTIAL |
+| FR-3.1 | `streaming` | Public Athlete Identity & Social Graph | — | — | NOT STARTED |
+| FR-3.2 | `streaming` | Stream Key Lifecycle (generate/rotate/revoke) | `backend/app/api/streaming.py`, `backend/app/domain/streaming.py` | `backend/tests/test_streaming.py` (8 tests) | PASS — live-verified against running stack + Appendix A vector format |
+| FR-3.2 | `streaming` | Actual WebRTC/RTMP ingest, HLS playback, overlays | `docker-compose.yml` (media-server service only, MediaMTX) | — | NOT STARTED — contract endpoints exist, real media pipeline integration does not |
+| FR-3.3 | `costream` | Synchronized 4-Way Co-Streaming & Host Handoff | `backend/app/api/costream.py`, `backend/app/domain/costream.py` | `backend/tests/test_phase2_contracts.py` (6 tests) | PASS — handoff, termination, capacity, layout validation all live-verified |
+| FR-4.1 | `qr_guest` | Dynamic Cryptographic QR Deep-Linking & Exports | `backend/app/api/qr.py`, `backend/app/domain/qr.py` | `backend/tests/test_qr.py` (9 tests) | PASS — incl. dynamic target mutation after match state change, SVG/PNG/PDF export |
+| FR-4.2 | `qr_guest` | Zero-Account Guest Experience | `backend/app/api/guest.py` (anonymous token issuance), Guest Web Player `/web/*` | `tests/selenium/test_guest_grid.py` | NOT STARTED — Guest Web Player HTML/DOM not built, Selenium suite will fail until it exists |
+| FR-4.3 | `qr_guest` | Server-Enforced Read-Only Boundary (HTTP 403) | `backend/app/auth/middleware.py` (`reject_guest_write`) | `backend/tests/test_phase2_contracts.py::test_guest_token_blocked_on_direct_writes` | PASS — verified on `/api/v1/chat`, `/audit/v1/checkout`, `/audit/v1/events` |
+| FR-4.4 | `qr_guest` | Progressive Registration & Atomic Cart Merge | `backend/app/domain/guest_cart.py`, `backend/app/api/guest.py` | `backend/tests/test_phase2_contracts.py` (3 tests) | PASS — idempotent replay, already-merged conflict, atomic merge all live-verified |
+| FR-5.2 | `moderation_dlq`| Notification Bus & Dead-Letter Queue (DLQ) | `backend/app/domain/moderation.py` (DLQ inspection only) | `backend/tests/test_phase2_contracts.py::test_dlq_depth_from_simulated_failures` | PARTIAL — DLQ depth/inspection works; real retry/WebSocket dispatch not built |
+| FR-5.3 | `moderation_dlq`| Automated Chat Moderation (Leetspeak/Flood) | `backend/app/domain/moderation.py`, `backend/app/api/moderation.py` | `backend/tests/test_phase2_contracts.py::test_moderation_spec_example` | PASS — matches spec's worked example byte-for-byte, verified under 10x concurrent race |
+| NFR-1 | — | Real-Time Score Latency (<500ms p95, WebSocket) | — | — | NOT STARTED — no WebSocket/SSE server exists |
+| NFR-2 | — | High-Concurrency Scale (550 VUs) | `tests/k6_load.js` | — | NOT TESTED — script present (matches spec exactly), never actually run against this stack |
+| NFR-6 | `observability` | System Observability (Prometheus /metrics) | `backend/app/api/observability.py`, `backend/app/domain/observability.py` | `backend/tests/test_phase2_contracts.py::test_metrics_*` | PASS — real counts from DB (active streams, DLQ depth, QR scans); ws_connections/bitrate hardcoded 0 (no real tracking yet) |
+| NFR-8 | — | Guest Web Accessibility (WCAG 2.1 AA) | — | — | NOT STARTED — depends on Guest Web Player |
+| NFR-9 | `observability` | Privacy & Data Minimization (Right to Erasure) | `backend/app/domain/observability.py::erase_user` | `backend/tests/test_phase2_contracts.py::test_privacy_erasure*` | PASS |

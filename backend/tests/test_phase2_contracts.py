@@ -103,6 +103,54 @@ async def test_costream_over_capacity_409(client):
     assert r.status_code in (400, 404)  # dup/unknown player caught before capacity, per spec's validation order
 
 
+@pytest.mark.asyncio
+async def test_costream_unknown_participant_404(client):
+    r = await client.post("/audit/v1/costream/session", json={
+        "session_id": "cs-test-5", "host_player_id": "player-alpha-1",
+        "participants": ["player-alpha-1", "nobody-123"],
+    })
+    assert r.status_code == 404
+    assert r.json()["error"]["code"] == "PLAYER_NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_costream_host_not_in_participants_400(client):
+    r = await client.post("/audit/v1/costream/session", json={
+        "session_id": "cs-test-6", "host_player_id": "player-beta-1",
+        "participants": ["player-alpha-1", "player-alpha-2"],
+    })
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_costream_unsupported_layout_400(client):
+    r = await client.post("/audit/v1/costream/session", json={
+        "session_id": "cs-test-7", "host_player_id": "player-alpha-1",
+        "participants": ["player-alpha-1", "player-alpha-2", "player-beta-1"], "layout": "solo",
+    })
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "UNSUPPORTED_LAYOUT"
+
+
+@pytest.mark.asyncio
+async def test_costream_duplicate_participants_400(client):
+    r = await client.post("/audit/v1/costream/session", json={
+        "session_id": "cs-test-8", "host_player_id": "player-alpha-1",
+        "participants": ["player-alpha-1", "player-alpha-1"],
+    })
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_costream_idempotent_replay_returns_200(client):
+    payload = {"session_id": "cs-test-9", "host_player_id": "player-alpha-1", "participants": ["player-alpha-1"], "layout": "solo"}
+    first = await client.post("/audit/v1/costream/session", json=payload)
+    second = await client.post("/audit/v1/costream/session", json=payload)
+    assert first.status_code == 201
+    assert second.status_code == 200
+
+
 # --- Chat moderation & DLQ (Section 5.8) ---
 
 @pytest.mark.asyncio
@@ -156,3 +204,23 @@ async def test_privacy_erasure(client):
 async def test_privacy_erasure_unknown_user_404(client):
     r = await client.delete("/audit/v1/privacy/user/nope")
     assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_metrics_reflects_real_counts(client):
+    await client.post("/audit/v1/stream/key", json={"action": "generate", "player_id": "player-alpha-1"})
+    r = await client.get("/metrics")
+    assert "nascon_active_streams_total 1" in r.text
+
+
+# --- QR edge cases not covered by test_qr.py ---
+
+@pytest.mark.asyncio
+async def test_qr_inspect_does_not_increment_scan_count(client):
+    before = (await client.get("/audit/v1/qr/match-m1?inspect=true")).json()["scan_count"]
+    await client.get("/audit/v1/qr/match-m1?inspect=true")
+    after = (await client.get("/audit/v1/qr/match-m1?inspect=true")).json()["scan_count"]
+    assert before == after == 0
+
+
+
