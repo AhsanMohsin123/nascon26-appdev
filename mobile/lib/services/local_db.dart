@@ -81,15 +81,19 @@ class LocalDb {
   }
 
   static Future<List<Map<String, dynamic>>> getPendingActions() async {
-    final d = await db;
-    final rows = await d.query('pending_actions', where: "status='pending'", orderBy: 'queued_at ASC');
-    return rows.map((r) => {
-      'action_id': r['action_id'],
-      'type': r['type'],
-      'queued_at': r['queued_at'],
-      'base_version': r['base_version'],
-      'payload': jsonDecode(r['payload'] as String),
-    }).toList();
+    try {
+      final d = await db;
+      final rows = await d.query('pending_actions', where: "status='pending'", orderBy: 'queued_at ASC');
+      return rows.map((r) => {
+        'action_id': r['action_id'],
+        'type': r['type'],
+        'queued_at': r['queued_at'],
+        'base_version': r['base_version'],
+        'payload': jsonDecode(r['payload'] as String),
+      }).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   static Future<void> markActionSynced(String actionId) async {

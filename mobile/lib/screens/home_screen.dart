@@ -9,6 +9,7 @@ import 'standings_screen.dart';
 import 'store_screen.dart';
 import 'club_screen.dart';
 import 'sync_screen.dart';
+import 'dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,17 +20,23 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<_Tab> _tabs = [
-    _Tab(label: 'Fixtures', icon: Icons.sports, screen: const FixturesScreen()),
-    _Tab(label: 'Standings', icon: Icons.leaderboard, screen: const StandingsScreen()),
-    _Tab(label: 'Store', icon: Icons.store, screen: const StoreScreen()),
-    _Tab(label: 'Club', icon: Icons.groups, screen: const ClubScreen()),
-    _Tab(label: 'Sync', icon: Icons.sync, screen: const SyncScreen()),
-  ];
+  late final List<_Tab> _tabs;
 
   @override
   void initState() {
     super.initState();
+    _tabs = [
+      _Tab(
+        label: 'Home',
+        icon: Icons.dashboard_rounded,
+        screen: DashboardScreen(onNavigateTab: (idx) => setState(() => _currentIndex = idx)),
+      ),
+      _Tab(label: 'Fixtures', icon: Icons.sports, screen: const FixturesScreen()),
+      _Tab(label: 'Standings', icon: Icons.leaderboard, screen: const StandingsScreen()),
+      _Tab(label: 'Store', icon: Icons.store, screen: const StoreScreen()),
+      _Tab(label: 'Club', icon: Icons.groups, screen: const ClubScreen()),
+      _Tab(label: 'Sync', icon: Icons.sync, screen: const SyncScreen()),
+    ];
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SyncProvider>().checkConnectivity();
     });
@@ -115,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       margin: const EdgeInsets.only(right: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
       child: Text(labels[role] ?? role, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700)),
     );
   }
