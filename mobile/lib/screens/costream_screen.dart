@@ -94,7 +94,14 @@ class _CostreamScreenState extends State<CostreamScreen> {
               ButtonSegment(value: 'spotlight', label: Text('Spotlight')),
             ],
             selected: {_layout},
-            onSelectionChanged: (s) { setState(() => _layout = s.first); _start(drop: false); },
+            onSelectionChanged: (s) {
+              setState(() {
+                _layout = s.first;
+                _spotlight = null;
+                _participants = _layout == 'grid_2' ? _participants.take(2).toList() : List.of(_all);
+              });
+              _start(drop: false);
+            },
           ),
         ),
         if (_error != null) Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(_error!, style: const TextStyle(color: Colors.red))),
