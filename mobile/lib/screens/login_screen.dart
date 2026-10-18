@@ -40,9 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Welcome Back', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.primaryDark)),
+                    const Text('Hot Reload Works!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.deepOrange)),
                     const SizedBox(height: 4),
-                    const Text('Sign in to continue', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    const Text('Live on your phone right now', style: TextStyle(color: Colors.grey, fontSize: 14)),
                     const SizedBox(height: 28),
                     _field('Email', _email, TextInputType.emailAddress, Icons.email_outlined),
                     const SizedBox(height: 16),
