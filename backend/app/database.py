@@ -22,6 +22,7 @@ async def init_db():
         from app.models import roster as roster_model
         from app.models import store as store_model
         from app.models import user as user_model
+        from app.models import streaming as streaming_model
         await conn.run_sync(Base.metadata.create_all)
 
     # Seed baseline data on startup if DB is empty

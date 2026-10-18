@@ -72,6 +72,9 @@ BASELINE_SPORTS = [
 async def reset_and_seed(db: AsyncSession, seed: int, stock: dict):
     # Wipe all state
     tables = [
+        "dlq_events", "moderation_actions", "chat_messages",
+        "cart_items", "carts", "guest_tokens", "qr_mappings",
+        "costream_sessions", "stream_keys",
         "offline_sync_actions", "order_items", "orders", "product_variants", "products",
         "roster_audit", "player_registrations", "players", "squads", "clubs",
         "match_events", "matches", "league_teams", "leagues",
@@ -141,5 +144,52 @@ async def reset_and_seed(db: AsyncSession, seed: int, stock: dict):
             "INSERT INTO users (id, email, password_hash, role, tenant_id, league_id, club_id) "
             "VALUES (:id, :email, :pw, :role, :tenant_id, :league_id, :club_id) ON CONFLICT (email) DO UPDATE SET password_hash=:pw"
         ), {"id": uid, "email": email, "pw": pw, "role": role, "tenant_id": tenant_id, "league_id": league_id, "club_id": club_id})
+
+    await db.commit()
+    await _seed_day2_baseline(db)
+
+
+async def _seed_day2_baseline(db: AsyncSession):
+    """Phase II baseline seed — player-beta-2, match-m1 (1-0, in_progress), QR mappings,
+    guest token guest_anon_tok_7721, and an empty cart for player-alpha-1."""
+    from app.auth.jwt import sign_payload
+
+    await db.execute(text(
+        "INSERT INTO players (id, club_id, name, position) VALUES (:id, :club_id, :name, 'gk') ON CONFLICT DO NOTHING"
+    ), {"id": "player-beta-2", "club_id": "club-beta-1", "name": "player-beta-2"})
+
+    await db.execute(text(
+        "INSERT INTO matches (id, league_id, sport_id, home_team_id, away_team_id, status) "
+        "VALUES ('match-m1', 'league-alpha-1', 'football', 'club-alpha-1', 'club-alpha-2', 'in_progress') "
+        "ON CONFLICT (id) DO UPDATE SET status = 'in_progress'"
+    ))
+    await db.execute(text("DELETE FROM match_events WHERE match_id = 'match-m1'"))
+    goal_payload = {"team_id": "club-alpha-1", "event_type": "goal"}
+    await db.execute(text(
+        "INSERT INTO match_events (id, match_id, sequence, type, payload, signature) "
+        "VALUES ('evt-seed-match-m1-goal', 'match-m1', 1, 'score', :payload, :sig)"
+    ), {"payload": json.dumps(goal_payload), "sig": sign_payload("evt-seed-match-m1-goal", goal_payload)})
+
+    qr_rows = [
+        ("match-m1", "match", "m1-live"),
+        ("player-alpha-1", "player", "p-alpha-1"),
+        ("club-alpha-1", "club", "c-alpha-1"),
+    ]
+    for entity_id, entity_type, short_code in qr_rows:
+        await db.execute(text(
+            "INSERT INTO qr_mappings (entity_id, entity_type, short_code, scan_count) "
+            "VALUES (:eid, :etype, :code, 0) ON CONFLICT (entity_id) DO UPDATE SET scan_count = 0"
+        ), {"eid": entity_id, "etype": entity_type, "code": short_code})
+
+    await db.execute(text(
+        "INSERT INTO guest_tokens (token, status, merged_user_id, merged_cart_signature) "
+        "VALUES ('guest_anon_tok_7721', 'valid', NULL, NULL) "
+        "ON CONFLICT (token) DO UPDATE SET status = 'valid', merged_user_id = NULL, merged_cart_signature = NULL"
+    ))
+
+    await db.execute(text(
+        "INSERT INTO carts (user_id, currency) VALUES ('player-alpha-1', 'PKR') ON CONFLICT DO NOTHING"
+    ))
+    await db.execute(text("DELETE FROM cart_items WHERE user_id = 'player-alpha-1'"))
 
     await db.commit()

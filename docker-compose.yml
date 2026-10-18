@@ -34,6 +34,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://nascon:nascon_pass@db:5432/nascon_db
       REDIS_URL: redis://redis:6379
       DAY1_SALT: ${DAY1_SALT}
+      DAY2_SALT: ${DAY2_SALT}
       JWT_SECRET: ${JWT_SECRET:-nascon26-jwt-secret-change-me}
       ENVIRONMENT: production
     depends_on:
@@ -57,12 +58,66 @@ services:
       DATABASE_URL: postgresql+asyncpg://nascon:nascon_pass@db:5432/nascon_db
       REDIS_URL: redis://redis:6379
       DAY1_SALT: ${DAY1_SALT}
+      DAY2_SALT: ${DAY2_SALT}
       JWT_SECRET: ${JWT_SECRET:-nascon26-jwt-secret-change-me}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  media-server:
+    image: bluenviron/mediamtx:latest
+    restart: unless-stopped
+    ports:
+      - "1935:1935"
+      - "8888:8888"
+      - "8889:8889"
+
+  selenium-hub:
+    image: selenium/hub:4.25.0
+    container_name: nascon-selenium-hub
+    restart: unless-stopped
+    ports:
+      - "4444:4444"
+      - "4442:4442"
+      - "4443:4443"
+
+  node-chrome-1:
+    image: selenium/node-chrome:4.25.0
+    shm_size: "1gb"
+    restart: unless-stopped
+    depends_on: [selenium-hub]
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=2
+      - SE_START_VNC=false
+
+  node-chrome-2:
+    image: selenium/node-chrome:4.25.0
+    shm_size: "1gb"
+    restart: unless-stopped
+    depends_on: [selenium-hub]
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=2
+      - SE_START_VNC=false
+
+  node-firefox:
+    image: selenium/node-firefox:4.25.0
+    shm_size: "1gb"
+    restart: unless-stopped
+    depends_on: [selenium-hub]
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=2
+      - SE_START_VNC=false
 
 volumes:
   pg_data:
