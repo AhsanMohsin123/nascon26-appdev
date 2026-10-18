@@ -31,6 +31,15 @@ class QRMapping(Base):
     scan_count = Column(Integer, default=0)
 
 
+class QRScanTelemetry(Base):
+    """Privacy-safe aggregate scan counters — no IP, User-Agent string, or fingerprint stored (NFR-9)."""
+    __tablename__ = "qr_scan_telemetry"
+    entity_id = Column(String(64), primary_key=True)
+    device_family = Column(String(16), primary_key=True)  # "mobile" | "desktop"
+    hour_bucket = Column(String(16), primary_key=True)  # UTC "YYYY-MM-DDTHH"
+    count = Column(Integer, default=0)
+
+
 class GuestToken(Base):
     __tablename__ = "guest_tokens"
     token = Column(String(64), primary_key=True)

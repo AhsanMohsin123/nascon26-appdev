@@ -89,6 +89,10 @@ class ApiService {
   static Future<Map<String, dynamic>> offlineSync(String deviceId, List<Map<String, dynamic>> actions) =>
       post('/audit/v1/offline-sync', {'device_id': deviceId, 'actions': actions});
 
+  // QR deep-linking
+  static Future<Map<String, dynamic>> getQrMetadata(String entityId) =>
+      get('/audit/v1/qr/$entityId');
+
   // Health
   static Future<bool> checkHealth() async {
     try {

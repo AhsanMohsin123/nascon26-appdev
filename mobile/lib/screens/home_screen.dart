@@ -10,6 +10,7 @@ import 'store_screen.dart';
 import 'club_screen.dart';
 import 'sync_screen.dart';
 import 'dashboard_screen.dart';
+import 'qr_scan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.dashboard_rounded,
         screen: DashboardScreen(onNavigateTab: (idx) => setState(() => _currentIndex = idx)),
       ),
+      _Tab(label: 'Scan', icon: Icons.qr_code_scanner, screen: const QrScanScreen()),
       _Tab(label: 'Fixtures', icon: Icons.sports, screen: const FixturesScreen()),
       _Tab(label: 'Standings', icon: Icons.leaderboard, screen: const StandingsScreen()),
       _Tab(label: 'Store', icon: Icons.store, screen: const StoreScreen()),
