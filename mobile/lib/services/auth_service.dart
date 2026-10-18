@@ -13,7 +13,7 @@ class AuthService extends ChangeNotifier {
   String? get token => _token;
   String? get role => _role;
 
-  String _baseUrl = 'http://10.0.2.2:8080';
+  String _baseUrl = 'http://127.0.0.1:8080';
   String get baseUrl => _baseUrl;
   set baseUrl(String url) {
     _baseUrl = url;

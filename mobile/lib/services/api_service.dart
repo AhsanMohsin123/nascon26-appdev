@@ -4,7 +4,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
   static const _storage = FlutterSecureStorage();
-  static String _baseUrl = 'http://10.0.2.2:8080';
+  static String _baseUrl = 'http://127.0.0.1:8080';
+  static const _timeout = Duration(seconds: 10);
 
   static String get baseUrl => _baseUrl;
   static set baseUrl(String url) => _baseUrl = url;
@@ -21,13 +22,13 @@ class ApiService {
 
   static Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body) async {
     final h = await _headers;
-    final r = await http.post(Uri.parse('$_baseUrl$path'), headers: h, body: jsonEncode(body));
+    final r = await http.post(Uri.parse('$_baseUrl$path'), headers: h, body: jsonEncode(body)).timeout(_timeout);
     return _parse(r);
   }
 
   static Future<Map<String, dynamic>> get(String path) async {
     final h = await _headers;
-    final r = await http.get(Uri.parse('$_baseUrl$path'), headers: h);
+    final r = await http.get(Uri.parse('$_baseUrl$path'), headers: h).timeout(_timeout);
     return _parse(r);
   }
 

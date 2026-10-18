@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:app_links/app_links.dart';
 import 'providers/auth_provider.dart';
 import 'providers/sync_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/deep_link_router.dart';
@@ -20,6 +21,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..tryRestoreSession()),
         ChangeNotifierProvider(create: (_) => SyncProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..load()),
       ],
       child: const NaSConApp(),
     ),
@@ -51,11 +53,10 @@ class _NaSConAppState extends State<NaSConApp> {
   }
 
   void _handleIncomingLink(Uri uri) {
-    final entityId = extractEntityId(uri.toString());
-    final ctx = navigatorKey.currentContext;
-    if (entityId != null && ctx != null) {
-      navigateToEntity(ctx, entityId);
-    }
+    resolveEntityId(uri.toString()).then((entityId) {
+      final ctx = navigatorKey.currentContext;
+      if (entityId != null && ctx != null && ctx.mounted) navigateToEntity(ctx, entityId);
+    }).catchError((_) {});
   }
 
   @override
@@ -63,18 +64,21 @@ class _NaSConAppState extends State<NaSConApp> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = context.watch<ThemeProvider>().mode;
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: "NaSCon '26",
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
+      // Login shows its own in-button spinner; swapping the whole tree for a spinner here
+      // left users staring at an endless loader whenever the server was unreachable.
       home: Consumer<AuthProvider>(
-        builder: (ctx, auth, _) {
-          if (auth.loading) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-          return auth.isLoggedIn ? const HomeScreen() : const LoginScreen();
-        },
+        builder: (ctx, auth, _) => AnimatedSwitcher(
+          duration: const Duration(milliseconds: 350),
+          child: auth.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+        ),
       ),
     );
   }

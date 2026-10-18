@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/sync_provider.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/sync_banner.dart';
 import '../app_theme.dart';
 import 'fixtures_screen.dart';
@@ -58,12 +59,28 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           const SyncIndicatorChip(),
           _roleChip(auth.user?.role ?? 'viewer'),
+          IconButton(
+            tooltip: 'Toggle light/dark mode',
+            onPressed: () => context.read<ThemeProvider>().toggle(),
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (c, a) => RotationTransition(turns: a, child: c),
+              child: Icon(
+                context.watch<ThemeProvider>().isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                key: ValueKey(context.watch<ThemeProvider>().isDark),
+              ),
+            ),
+          ),
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
             itemBuilder: (_) => [
+              const PopupMenuItem(value: 'feedback', child: Row(children: [Icon(Icons.feedback_outlined, size: 16), SizedBox(width: 8), Text('Send feedback')])),
               const PopupMenuItem(value: 'logout', child: Row(children: [Icon(Icons.logout, size: 16), SizedBox(width: 8), Text('Logout')])),
             ],
             onSelected: (v) {
+              if (v == 'feedback') {
+                _showFeedback(context, _tabs[_currentIndex].label, auth.user?.role ?? 'viewer');
+              }
               if (v == 'logout') {
                 showDialog(
                   context: context,
@@ -84,7 +101,19 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           const SyncBanner(),
-          Expanded(child: _tabs[_currentIndex].screen),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween(begin: const Offset(0.04, 0), end: Offset.zero).animate(anim),
+                  child: child,
+                ),
+              ),
+              child: KeyedSubtree(key: ValueKey(_currentIndex), child: _tabs[_currentIndex].screen),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -101,6 +130,41 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           label: t.label,
         )).toList(),
+      ),
+    );
+  }
+
+  void _showFeedback(BuildContext context, String page, String role) {
+    final ctrl = TextEditingController();
+    int rating = 0;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setSheet) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(sheetCtx).viewInsets.bottom + 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Feedback on "$page"', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            Text('Signed in as $role', style: TextStyle(color: Theme.of(sheetCtx).colorScheme.outline)),
+            const SizedBox(height: 12),
+            Row(children: List.generate(5, (i) => IconButton(
+              onPressed: () => setSheet(() => rating = i + 1),
+              icon: Icon(i < rating ? Icons.star_rounded : Icons.star_outline_rounded, color: Colors.amber, size: 32),
+            ))),
+            TextField(controller: ctrl, maxLines: 3, decoration: const InputDecoration(hintText: 'What works, what doesn\'t?')),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(sheetCtx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Thanks! Feedback for $page saved (${rating > 0 ? '$rating★' : 'no rating'}).')),
+                );
+              },
+              child: const Text('Submit'),
+            ),
+          ]),
+        ),
       ),
     );
   }
