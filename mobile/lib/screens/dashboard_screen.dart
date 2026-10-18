@@ -149,33 +149,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(12),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.emoji_events, color: Colors.amber, size: 26),
                     ),
-                    child: const Icon(Icons.emoji_events, color: Colors.amber, size: 26),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "NaSCon '26 Championship",
-                        style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "NaSCon '26 Championship",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            'Welcome, $userName!',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'Welcome, $userName!',
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -220,13 +227,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 const Icon(Icons.shield_outlined, color: Colors.white70, size: 16),
                 const SizedBox(width: 8),
-                Text(
-                  'Active Role: ${role.toUpperCase()}',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                Expanded(
+                  child: Text(
+                    'Active Role: ${role.toUpperCase()}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 const Text(
-                  'Sprint Phase II Ready',
+                  'Phase II',
                   style: TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.w700),
                 ),
               ],

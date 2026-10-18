@@ -51,11 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final sync = context.watch<SyncProvider>();
     return Scaffold(
       appBar: AppBar(
-        title: Row(children: [
-          const Icon(Icons.sports, color: Colors.white, size: 22),
-          const SizedBox(width: 8),
-          const Text("NaSCon '26"),
-        ]),
+        titleSpacing: 12,
+        title: const Text("NaSCon '26", overflow: TextOverflow.ellipsis),
         actions: [
           const SyncIndicatorChip(),
           _roleChip(auth.user?.role ?? 'viewer'),
