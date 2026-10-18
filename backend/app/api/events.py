@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.domain import scoring as scoring_service
+from app.auth.middleware import reject_guest_write
 
 router = APIRouter()
 
 
 @router.post("/events")
-async def append_event(body: dict, db: AsyncSession = Depends(get_db)):
+async def append_event(body: dict, request: Request, db: AsyncSession = Depends(get_db)):
+    reject_guest_write(request)
     return await scoring_service.append_event(db, body)
 
 

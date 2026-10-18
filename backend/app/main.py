@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.database import init_db
-from app.api import health, reset, sports, fixtures, leagues, events, standings, roster, store, rbac, offline_sync, ping, streaming, qr, auth as auth_router
+from app.api import health, reset, sports, fixtures, leagues, events, standings, roster, store, rbac, offline_sync, ping, streaming, qr, guest, chat, costream, moderation, observability, auth as auth_router
 
 
 @asynccontextmanager
@@ -54,4 +54,10 @@ app.include_router(offline_sync.router, prefix="/audit/v1")
 app.include_router(streaming.router, prefix="/audit/v1")
 app.include_router(qr.router, prefix="/audit/v1")
 app.include_router(qr.public_router)
+app.include_router(guest.router, prefix="/audit/v1")
+app.include_router(costream.router, prefix="/audit/v1")
+app.include_router(moderation.router, prefix="/audit/v1")
+app.include_router(observability.audit_router, prefix="/audit/v1")
+app.include_router(observability.router)
 app.include_router(ping.router, prefix="/api/v1")
+app.include_router(chat.router, prefix="/api/v1")

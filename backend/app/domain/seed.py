@@ -75,7 +75,7 @@ async def reset_and_seed(db: AsyncSession, seed: int, stock: dict):
         "dlq_events", "moderation_actions", "chat_messages",
         "cart_items", "carts", "guest_tokens", "qr_mappings",
         "costream_sessions", "stream_keys",
-        "offline_sync_actions", "order_items", "orders", "product_variants", "products",
+        "offline_sync_actions", "orders", "product_variants", "products",
         "roster_audit", "player_registrations", "players", "squads", "clubs",
         "match_events", "matches", "league_teams", "leagues",
         "sports", "tenants", "users",
@@ -84,7 +84,10 @@ async def reset_and_seed(db: AsyncSession, seed: int, stock: dict):
         try:
             await db.execute(text(f"DELETE FROM {table}"))
         except Exception:
-            pass
+            # A single missing/locked table must never abort the whole transaction and
+            # silently skip wiping every table listed after it (real Day 1 bug: "order_items"
+            # never existed, which poisoned this entire loop from "orders" onward).
+            await db.rollback()
     await db.commit()
 
     # Seed tenants
