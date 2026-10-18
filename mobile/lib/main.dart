@@ -9,6 +9,7 @@ import 'providers/theme_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/deep_link_router.dart';
+import 'services/score_bus.dart';
 import 'app_theme.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -42,6 +43,7 @@ class _NaSConAppState extends State<NaSConApp> {
   void initState() {
     super.initState();
     _initDeepLinks();
+    ScoreBus.start();
   }
 
   Future<void> _initDeepLinks() async {
@@ -67,6 +69,7 @@ class _NaSConAppState extends State<NaSConApp> {
     final themeMode = context.watch<ThemeProvider>().mode;
     return MaterialApp(
       navigatorKey: navigatorKey,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       title: "NaSCon '26",
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,

@@ -14,6 +14,7 @@ import 'dashboard_screen.dart';
 import 'qr_scan_screen.dart';
 import 'stream_studio_screen.dart';
 import 'costream_screen.dart';
+import 'match_control_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -82,12 +83,15 @@ class _HomeScreenState extends State<HomeScreen> {
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
             itemBuilder: (_) => [
+              if (const {'league_organizer', 'super_admin'}.contains(auth.user?.role))
+                const PopupMenuItem(value: 'control', child: Row(children: [Icon(Icons.scoreboard_rounded, size: 16), SizedBox(width: 8), Text('Match Control')])),
               const PopupMenuItem(value: 'studio', child: Row(children: [Icon(Icons.videocam_rounded, size: 16), SizedBox(width: 8), Text('Stream Studio')])),
               const PopupMenuItem(value: 'costream', child: Row(children: [Icon(Icons.grid_view_rounded, size: 16), SizedBox(width: 8), Text('Co-Stream (4-way)')])),
               const PopupMenuItem(value: 'feedback', child: Row(children: [Icon(Icons.feedback_outlined, size: 16), SizedBox(width: 8), Text('Send feedback')])),
               const PopupMenuItem(value: 'logout', child: Row(children: [Icon(Icons.logout, size: 16), SizedBox(width: 8), Text('Logout')])),
             ],
             onSelected: (v) {
+              if (v == 'control') Navigator.push(context, MaterialPageRoute(builder: (_) => const MatchControlScreen()));
               if (v == 'studio') Navigator.push(context, MaterialPageRoute(builder: (_) => const StreamStudioScreen()));
               if (v == 'costream') Navigator.push(context, MaterialPageRoute(builder: (_) => const CostreamScreen()));
               if (v == 'feedback') {
