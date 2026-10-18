@@ -1,10 +1,10 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.database import init_db
-from app.api import health, reset, sports, fixtures, leagues, events, standings, roster, store, rbac, offline_sync, ping, auth as auth_router
+from app.api import health, reset, sports, fixtures, leagues, events, standings, roster, store, rbac, offline_sync, ping, streaming, auth as auth_router
 
 
 @asynccontextmanager
@@ -24,11 +24,18 @@ async def limit_body_size(request: Request, call_next):
     return await call_next(request)
 
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    # Overrides FastAPI's default handler, which wraps content in {"detail": ...} —
+    # the spec's Standard Error Envelope requires the bare {"error": {...}} shape.
+    content = exc.detail if isinstance(exc.detail, dict) and "error" in exc.detail else {
+        "error": {"code": "ERROR", "message": str(exc.detail), "details": {}}
+    }
+    return JSONResponse(status_code=exc.status_code, content=content)
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    from fastapi import HTTPException
-    if isinstance(exc, HTTPException):
-        return JSONResponse(status_code=exc.status_code, content=exc.detail)
     return JSONResponse(status_code=500, content={"error": {"code": "INTERNAL_ERROR", "message": str(exc), "details": {}}})
 
 
@@ -44,4 +51,5 @@ app.include_router(roster.router, prefix="/audit/v1")
 app.include_router(store.router, prefix="/audit/v1")
 app.include_router(rbac.router, prefix="/audit/v1")
 app.include_router(offline_sync.router, prefix="/audit/v1")
+app.include_router(streaming.router, prefix="/audit/v1")
 app.include_router(ping.router, prefix="/api/v1")

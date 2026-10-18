@@ -152,6 +152,7 @@ async def reset_and_seed(db: AsyncSession, seed: int, stock: dict):
 async def _seed_day2_baseline(db: AsyncSession):
     """Phase II baseline seed — player-beta-2, match-m1 (1-0, in_progress), QR mappings,
     guest token guest_anon_tok_7721, and an empty cart for player-alpha-1."""
+    import json
     from app.auth.jwt import sign_payload
 
     await db.execute(text(
