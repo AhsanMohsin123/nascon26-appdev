@@ -101,7 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 title: 'Featured & Live Fixtures',
                 subtitle: 'Real-time event scores',
                 actionLabel: 'View All',
-                onAction: () => widget.onNavigateTab?.call(1),
+                onAction: () => widget.onNavigateTab?.call(2),
               ),
               const SizedBox(height: 10),
               _buildMatchCarousel(),
@@ -112,7 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 title: 'Tournament Standings Preview',
                 subtitle: 'Top qualifying teams',
                 actionLabel: 'Full Table',
-                onAction: () => widget.onNavigateTab?.call(2),
+                onAction: () => widget.onNavigateTab?.call(3),
               ),
               const SizedBox(height: 10),
               _buildStandingsCard(),
@@ -369,16 +369,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildActionButton(Icons.sports, 'Fixtures', const Color(0xFF1976D2), () {
-            widget.onNavigateTab?.call(1);
-          }),
-          _buildActionButton(Icons.leaderboard, 'Standings', const Color(0xFF7B1FA2), () {
             widget.onNavigateTab?.call(2);
           }),
-          _buildActionButton(Icons.storefront, 'Merch Store', const Color(0xFFF57C00), () {
+          _buildActionButton(Icons.leaderboard, 'Standings', const Color(0xFF7B1FA2), () {
             widget.onNavigateTab?.call(3);
           }),
+          _buildActionButton(Icons.storefront, 'Merch Store', const Color(0xFFF57C00), () {
+            widget.onNavigateTab?.call(4);
+          }),
           _buildActionButton(Icons.sync, 'Offline Hub', const Color(0xFF388E3C), () {
-            widget.onNavigateTab?.call(5);
+            widget.onNavigateTab?.call(6);
           }),
         ],
       ),
@@ -463,18 +463,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
         ),
         TextButton(
           onPressed: onAction,

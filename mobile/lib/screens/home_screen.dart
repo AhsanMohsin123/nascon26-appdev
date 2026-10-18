@@ -21,8 +21,17 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  final _pageController = PageController();
 
   late final List<_Tab> _tabs;
+
+  void _goTo(int i) {
+    setState(() => _currentIndex = i);
+    _pageController.animateToPage(i, duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
+  }
+
+  @override
+  void dispose() { _pageController.dispose(); super.dispose(); }
 
   @override
   void initState() {
@@ -31,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _Tab(
         label: 'Home',
         icon: Icons.dashboard_rounded,
-        screen: DashboardScreen(onNavigateTab: (idx) => setState(() => _currentIndex = idx)),
+        screen: DashboardScreen(onNavigateTab: _goTo),
       ),
       _Tab(label: 'Scan', icon: Icons.qr_code_scanner, screen: const QrScanScreen()),
       _Tab(label: 'Fixtures', icon: Icons.sports, screen: const FixturesScreen()),
@@ -99,23 +108,17 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const SyncBanner(),
           Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 280),
-              transitionBuilder: (child, anim) => FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position: Tween(begin: const Offset(0.04, 0), end: Offset.zero).animate(anim),
-                  child: child,
-                ),
-              ),
-              child: KeyedSubtree(key: ValueKey(_currentIndex), child: _tabs[_currentIndex].screen),
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (i) => setState(() => _currentIndex = i),
+              children: _tabs.map((t) => t.screen).toList(),
             ),
           ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: _goTo,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppTheme.primary,
         unselectedItemColor: Colors.grey,
